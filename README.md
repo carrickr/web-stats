@@ -9,6 +9,11 @@ rake db:migrate
 rake db:seed for one million records
 rails c or rails s
 
+APi routes
+
+http://0.0.0.0:3001/api/v1/sites/top_urls.json
+
+
 This README would normally document whatever steps are necessary to get the
 application up and running.
 

@@ -20,6 +20,32 @@ class Site < Sequel::Model
     Site.where(created_at: date.all_day).group_and_count(:url).all
   end
 
+  # provides a hash containing all sites and the number of times each site
+  # was visited on a given date
+  # @param [DateTime] date The date to retrieve the results for
+  # @return [Hash] a hash in the form of {date: [{url: , visits:}]}
+  def formatted_visits(date:)
+    date_key = date.strftime("%Y-%m-%d")
+    return_hash = { date_key => []}
+    visits(date: date).each do |v|
+      return_hash[date_key] << {'url' => v.values[:url], 'visits' => v.values[:count]}
+    end
+    return_hash
+  end
+
+  # provides a hash containing all sites and the number of times each site
+  # was visited for every day on the supplied range
+  # @param [DateTime] start_date the date to start the range on
+  # @param [DateTime] end_date the date to end the range on, defaults to today
+  # @return [Hash] the results in the form of {date: [{url: , visits:}]}
+  def formatted_visits_over_daterange(start_date:,end_date: Date.today)
+    return_hash = {}
+    start_date.to_date.upto(end_date.to_date).each do |date|
+      return_hash.merge!(formatted_visits(date: date))
+    end
+    return_hash
+  end
+
   # override the default hash method to return MD5 hexdigest stored
   # in the database
   # @return [String] the MD5 hexdigest

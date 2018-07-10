@@ -3,6 +3,7 @@
 require 'rails_helper'
 
 # rubocop:disable Metrics/BlockLength
+# rubocop:disable Metrics/LineLength
 RSpec.describe Site, type: :model do
   let(:subject) { described_class.new }
   before(:each) { DatabaseCleaner.clean }
@@ -60,11 +61,12 @@ RSpec.describe Site, type: :model do
       expect(subject.visits(date: Date.today).size).to eq(2)
     end
 
+
     it 'returns the url of each visited site' do
       result = subject.visits(date: Date.today)
-      expect([result[0].values[:url], result[1].values[:url]]).to
-      contain_exactly('http://apple.com', 'http://en.wikipedia.org')
+      expect([result[0].values[:url], result[1].values[:url]]).to contain_exactly('http://apple.com', 'http://en.wikipedia.org')
     end
+
 
     it 'returns the count of visits for each site' do
       # visit each again so that our counts are different than the counts from
@@ -76,5 +78,55 @@ RSpec.describe Site, type: :model do
       expect([result[0].values[:count], result[1].values[:count]]).to contain_exactly(2, 2)
     end
   end
+
+  describe 'providing json reports of visits' do
+    let!(:first_site_visited_today) do
+      described_class.create(url: 'http://apple.com',
+                             created_at: Date.today)
+    end
+    let!(:site_visited_1_day_ago) do
+      described_class.create(url: 'http://en.wikipedia.org',
+                             created_at: Date.today)
+    end
+    let!(:site_visited_2_days_ago) do
+      described_class.create(url: 'http://developer.apple.com',
+                             created_at: 2.days.ago)
+    end
+
+    describe '.formatted_visits' do
+      it 'returns a hash' do
+        expect(subject.formatted_visits(date: Date.today).class).to eq(Hash)
+      end
+
+      it 'uses date as the hash key' do
+        expect(subject.formatted_visits(date: Date.today).keys).to contain_exactly(Date.today.strftime("%Y-%m-%d"))
+      end
+
+      it 'returns the url and visits for a site' do
+        expect(subject.formatted_visits(date: Date.today)[Date.today.strftime("%Y-%m-%d")].first).to include('url' => 'http://apple.com','visits' => 1)
+      end
+    end
+
+    describe '.formatted_visits_over_daterange' do
+      it 'returns a hash' do
+        expect(subject.formatted_visits_over_daterange(start_date: Date.today).class).to eq(Hash)
+      end
+
+      it 'uses date as the hash key' do
+        expect(subject.formatted_visits_over_daterange(start_date: Date.today).keys).to contain_exactly(Date.today.strftime("%Y-%m-%d"))
+      end
+
+      it 'defaults to using Date.today as the end_date' do
+        expect(subject.formatted_visits_over_daterange(start_date: Date.today).keys).to contain_exactly(Date.today.strftime("%Y-%m-%d"))
+      end
+
+      it 'gets a range of dates' do
+        expect(subject.formatted_visits_over_daterange(start_date: 3.days.ago, end_date: 1.days.ago).keys.size).to eq(3)
+      end
+
+
+    end
+  end
 end
 # rubocop:enable Metrics/BlockLength
+# rubocop:enable Metrics/LineLength
