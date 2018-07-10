@@ -1,0 +1,5 @@
+<%= content_tag :div,
+  id: "top_results_data",
+  data: Site.new.formatted_visits_over_daterange(start_date: 4.days.ago).to_json do %>
+<% end %>
+<%= javascript_pack_tag 'top_results' %>
