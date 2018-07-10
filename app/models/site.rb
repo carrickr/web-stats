@@ -20,15 +20,30 @@ class Site < Sequel::Model
     Site.where(created_at: date.all_day).group_and_count(:url).all
   end
 
+  # Gets the top n sites for a given day
+  # @param [DateTime] date The date to retrieve the results for
+  # @param [Int] limit The number of sites you wish to retrieve, defaults to 10
+  # @return [Hash] the sites in the form of {date: {site: visits}}
+  #  the hash will always be returned ordered such that the first {site: visits}
+  #  is the site with the most visits that day
+  def top_sites(date:, limit: 10)
+    date_key = date.strftime('%Y-%m-%d')
+    result_hash = {  date_key => {} }
+    Site.where(created_at: date.all_day).group_and_count(:url).order(Sequel.desc(:count)).limit(limit).all.each do |site|
+      result_hash[date_key][site[:url]] = site[:count]
+    end
+    result_hash
+  end
+
   # provides a hash containing all sites and the number of times each site
   # was visited on a given date
   # @param [DateTime] date The date to retrieve the results for
   # @return [Hash] a hash in the form of {date: [{url: , visits:}]}
   def formatted_visits(date:)
-    date_key = date.strftime("%Y-%m-%d")
-    return_hash = { date_key => []}
+    date_key = date.strftime('%Y-%m-%d')
+    return_hash = { date_key => [] }
     visits(date: date).each do |v|
-      return_hash[date_key] << {'url' => v.values[:url], 'visits' => v.values[:count]}
+      return_hash[date_key] << { 'url' => v.values[:url], 'visits' => v.values[:count] }
     end
     return_hash
   end
@@ -38,7 +53,7 @@ class Site < Sequel::Model
   # @param [DateTime] start_date the date to start the range on
   # @param [DateTime] end_date the date to end the range on, defaults to today
   # @return [Hash] the results in the form of {date: [{url: , visits:}]}
-  def formatted_visits_over_daterange(start_date:,end_date: Date.today)
+  def formatted_visits_over_daterange(start_date:, end_date: Date.today)
     return_hash = {}
     start_date.to_date.upto(end_date.to_date).each do |date|
       return_hash.merge!(formatted_visits(date: date))

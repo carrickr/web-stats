@@ -61,12 +61,10 @@ RSpec.describe Site, type: :model do
       expect(subject.visits(date: Date.today).size).to eq(2)
     end
 
-
     it 'returns the url of each visited site' do
       result = subject.visits(date: Date.today)
       expect([result[0].values[:url], result[1].values[:url]]).to contain_exactly('http://apple.com', 'http://en.wikipedia.org')
     end
-
 
     it 'returns the count of visits for each site' do
       # visit each again so that our counts are different than the counts from
@@ -99,11 +97,11 @@ RSpec.describe Site, type: :model do
       end
 
       it 'uses date as the hash key' do
-        expect(subject.formatted_visits(date: Date.today).keys).to contain_exactly(Date.today.strftime("%Y-%m-%d"))
+        expect(subject.formatted_visits(date: Date.today).keys).to contain_exactly(Date.today.strftime('%Y-%m-%d'))
       end
 
       it 'returns the url and visits for a site' do
-        expect(subject.formatted_visits(date: Date.today)[Date.today.strftime("%Y-%m-%d")].first).to include('url' => 'http://apple.com','visits' => 1)
+        expect(subject.formatted_visits(date: Date.today)[Date.today.strftime('%Y-%m-%d')].first).to include('url' => 'http://apple.com', 'visits' => 1)
       end
     end
 
@@ -113,18 +111,35 @@ RSpec.describe Site, type: :model do
       end
 
       it 'uses date as the hash key' do
-        expect(subject.formatted_visits_over_daterange(start_date: Date.today).keys).to contain_exactly(Date.today.strftime("%Y-%m-%d"))
+        expect(subject.formatted_visits_over_daterange(start_date: Date.today).keys).to contain_exactly(Date.today.strftime('%Y-%m-%d'))
       end
 
       it 'defaults to using Date.today as the end_date' do
-        expect(subject.formatted_visits_over_daterange(start_date: Date.today).keys).to contain_exactly(Date.today.strftime("%Y-%m-%d"))
+        expect(subject.formatted_visits_over_daterange(start_date: Date.today).keys).to contain_exactly(Date.today.strftime('%Y-%m-%d'))
       end
 
       it 'gets a range of dates' do
         expect(subject.formatted_visits_over_daterange(start_date: 3.days.ago, end_date: 1.days.ago).keys.size).to eq(3)
       end
+    end
+  end
+  describe 'providing reports of top n websites and their referrers' do
+    describe '.top_sites' do
+      # Visit one site twice
+      let!(:first_visit) { described_class.create(url: 'http://apple.com', created_at: Time.now) }
+      let!(:second_visit) { described_class.create(url: 'http://apple.com', created_at: Time.now) }
+      # Visit another site once
+      let!(:different_site) { described_class.create(url: 'http://developer.apple.com', created_at: Time.now) }
 
+      let(:date_key) { 0.days.ago.strftime('%Y-%m-%d') }
 
+      it 'gets the sites visited' do
+        expect(subject.top_sites(date: 0.days.ago)).to include(date_key => { 'http://apple.com' => 2, 'http://developer.apple.com' => 1 })
+      end
+
+      it 'returns only the desired number of sites' do
+        expect(subject.top_sites(date: 0.days.ago, limit: 1)).to include(date_key => { 'http://apple.com' => 2 })
+      end
     end
   end
 end
