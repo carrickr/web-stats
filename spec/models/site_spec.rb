@@ -105,40 +105,54 @@ RSpec.describe Site, type: :model do
       end
     end
 
-    describe '.formatted_visits_over_daterange' do
+    describe '.visits_over_daterange' do
       it 'returns a hash' do
-        expect(subject.formatted_visits_over_daterange(start_date: Date.today).class).to eq(Hash)
+        expect(subject.visits_over_daterange(start_date: Date.today).class).to eq(Hash)
       end
 
       it 'uses date as the hash key' do
-        expect(subject.formatted_visits_over_daterange(start_date: Date.today).keys).to contain_exactly(Date.today.strftime('%Y-%m-%d'))
+        expect(subject.visits_over_daterange(start_date: Date.today).keys).to contain_exactly(Date.today.strftime('%Y-%m-%d'))
       end
 
       it 'defaults to using Date.today as the end_date' do
-        expect(subject.formatted_visits_over_daterange(start_date: Date.today).keys).to contain_exactly(Date.today.strftime('%Y-%m-%d'))
+        expect(subject.visits_over_daterange(start_date: Date.today).keys).to contain_exactly(Date.today.strftime('%Y-%m-%d'))
       end
 
       it 'gets a range of dates' do
-        expect(subject.formatted_visits_over_daterange(start_date: 3.days.ago, end_date: 1.days.ago).keys.size).to eq(3)
+        expect(subject.visits_over_daterange(start_date: 3.days.ago, end_date: 1.days.ago).keys.size).to eq(3)
       end
     end
   end
   describe 'providing reports of top n websites and their referrers' do
+    # Visit one site twice
+    let!(:first_visit) { described_class.create(url: 'http://apple.com', created_at: Time.now) }
+    let!(:second_visit) { described_class.create(url: 'http://apple.com', created_at: Time.now) }
+    # Visit another site once
+    let!(:different_site) { described_class.create(url: 'http://developer.apple.com', created_at: Time.now) }
+
+    let(:date_key) { 0.days.ago.strftime('%Y-%m-%d') }
     describe '.top_sites' do
-      # Visit one site twice
-      let!(:first_visit) { described_class.create(url: 'http://apple.com', created_at: Time.now) }
-      let!(:second_visit) { described_class.create(url: 'http://apple.com', created_at: Time.now) }
-      # Visit another site once
-      let!(:different_site) { described_class.create(url: 'http://developer.apple.com', created_at: Time.now) }
-
-      let(:date_key) { 0.days.ago.strftime('%Y-%m-%d') }
-
       it 'gets the sites visited' do
         expect(subject.top_sites(date: 0.days.ago)).to include(date_key => { 'http://apple.com' => 2, 'http://developer.apple.com' => 1 })
       end
 
       it 'returns only the desired number of sites' do
         expect(subject.top_sites(date: 0.days.ago, limit: 1)).to include(date_key => { 'http://apple.com' => 2 })
+      end
+    end
+    describe '.top_sites_over_daterange' do
+      let!(:visited_yesterday) { described_class.create(url: 'http://opensource.org', created_at: 1.day.ago) }
+      let(:yesterday_date_key) { 1.days.ago.strftime('%Y-%m-%d') }
+      it 'gets the sites visited' do
+        expect(subject.top_sites_over_daterange(start_date: 0.days.ago)).to include(date_key => { 'http://apple.com' => 2, 'http://developer.apple.com' => 1 })
+      end
+
+      it 'gets the sites visited over multiple days' do
+        expect(subject.top_sites_over_daterange(start_date: 1.days.ago)).to include(yesterday_date_key => { 'http://opensource.org' => 1 }, date_key => { 'http://apple.com' => 2, 'http://developer.apple.com' => 1 })
+      end
+
+      it 'applies limits to the number of results' do
+        expect(subject.top_sites_over_daterange(start_date: 1.days.ago, limit: 1)).to include(date_key => { 'http://apple.com' => 2 })
       end
     end
   end
