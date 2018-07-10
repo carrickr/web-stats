@@ -11,16 +11,29 @@ class Site < Sequel::Model
     generate_hash
   end
 
-  def daily_count(day)
-    Site.where(created_at: day.utc.all_day).group(:url).size
+  # Queries the database to determine the number of views per url on the given
+  # day
+  # @param [Date] date the day you wish to retrieve views for
+  # @return [Array <Site>] an array of sites with their visits, use
+  #   Site.values[:url] and Site.values[:count] for visit information
+  def visits(date:)
+    Site.where(created_at: date.all_day).group_and_count(:url).all
   end
 
+  # override the default hash method to return MD5 hexdigest stored
+  # in the database
+  # @return [String] the MD5 hexdigest
   def hash
     self[:hash]
   end
 
   private
 
+  # used as an after_save hook to generater a MD5 Hexdigest using the
+  # :id, :url, :referrer, and :created_at attributes (referrer is excluded if
+  # nil).
+  # Uses update when writing the hash to avoid triggering the after_save hook
+  # and creating a loop
   def generate_hash
     t_hash = { id: id, url: url, referrer: referrer, created_at: created_at }
     t_hash.delete(:referrer) if t_hash[:referrer].nil?

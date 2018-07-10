@@ -1,5 +1,14 @@
 # README
 
+Setup:
+Install postgres, ideally via homebrew
+start postgres
+bundle Install
+rake db:create
+rake db:migrate
+rake db:seed for one million records
+rails c or rails s
+
 This README would normally document whatever steps are necessary to get the
 application up and running.
 
