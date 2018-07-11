@@ -41,12 +41,18 @@ referrers.each { |referrer| Site.create(url: urls.sample, referrer: referrer, cr
 
 current_id = Site.last.id
 
+# we only have 4 referrers, but want to print out the top 5 referrers
+# adding two more reffers so there are 6 potential ones
+
+referrers << 'http://www.umich.edu'
+referrers << 'http://www.berkeley.edu'
+
 values = (1000000-Site.all.size).times.collect {
   current_id += 1
   site = {id: current_id, url: urls.sample, referrer: referrers.sample, created_at: random_time }
   site.delete(:referrer) if site[:referrer].nil?
   site[:hash] = Digest::MD5.hexdigest(site.to_s)
-  ["#{site[:id]}","#{site[:url]}","#{site[:referrer]}","#{site[:created_at]}","#{site[:hash]}"]
+  [site[:id].to_s,site[:url],site[:referrer] ,site[:created_at].to_s,site[:hash]]
 }
 
 Site.import(['id', 'url', 'referrer', 'created_at', 'hash'],values)

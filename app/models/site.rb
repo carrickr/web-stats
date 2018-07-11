@@ -110,10 +110,8 @@ class Site < Sequel::Model
   def get_referrers(date:, url:, limit: 5)
     date = Date.parse(date) if date.class == String
     referrers = []
-    Site.where(created_at: date.all_day, url: url).group_and_count(:referrer).order(Sequel.desc(:count)).limit(limit+1).all.each do |referrer|
-      unless referrer[:referrer].nil? || referrers.size == limit
-        referrers << {'url' => referrer[:referrer], 'visits' => referrer[:count]}
-      end
+    Site.where(created_at: date.all_day, url: url).exclude(referrer: nil).group_and_count(:referrer).order(Sequel.desc(:count)).limit(limit).all.each do |referrer|
+      referrers << {'url' => referrer[:referrer], 'visits' => referrer[:count]}
     end
     referrers
   end
@@ -140,6 +138,9 @@ class Site < Sequel::Model
   # @param [Int] limit the total number of top sites you wish to return
   # @return [Hash] the results in the form of {date: {url: visits}]}
   def add_potential_top_sites(current_results:, new_sites:, limit: 10)
+    # As a future optimization this constant flattening/unflattlening
+    # is really unneeded, the results should just stay flat throughout
+    # the search process
     current_results.merge!(new_sites)
     unflatten_result_hash(flattened_hash: flatten_result_hash(results: current_results), limit: limit)
   end

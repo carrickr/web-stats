@@ -1,38 +1,38 @@
 # README
 
-Setup:
-Install postgres, ideally via homebrew
-start postgres
-bundle Install
-rake db:create
-rake db:migrate
-rake db:seed for one million records
-rails c or rails s
+## Dependencies
 
-APi routes
+1. Ruby, developed with `2.4.1`
+1. Postgres, ideally installed and launched via homebrew (if not you may need to edit `database.yml`)
 
-http://0.0.0.0:3001/api/v1/sites/top_urls.json
+## Setup
 
+1. Clone the project from github and `cd` into it
+1. `bundle install`
+1. `rails db:create`
+1. `rails db:migrate`
+1. `rails db:seed` if you wish to load one million randomly generated records
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+## Running the Project
 
-Things you may want to cover:
+1. You can start just the rails portion via `bundle exec rails s` or `bundle exec rails c`
+1. To start Rails and the React components run `foreman start -f Procfile.dev`
 
-* Ruby version
+## API Routes
 
-* System dependencies
+There are two routes to get the json required by the exercise.  These are intended for use by any applications that might query this Rails App
 
-* Configuration
+1. `/api/v1/sites/top_urls.json` will return Report 1
+1. `/api/v1/sites/top_referrers.json` will return Report 2
 
-* Database creation
+## React Routes
 
-* Database initialization
+The requested reports in a more human readable form are at:
 
-* How to run the test suite
+1. `/top_urls` for Report 1
+1. `/top_referrers` for Report 2
 
-* Services (job queues, cache servers, search engines, etc.)
+## Testing
 
-* Deployment instructions
-
-* ...
+1. Create the test database via `rails db:test:prepare`
+1. Run the tests via `bundle exec rspec`

@@ -8,7 +8,7 @@ Rails.application.routes.draw do
   Rails.application.routes.draw do
 
   get '/top_urls', to: 'results#top_urls'
-  get 'results/top_referrers'
+  get '/top_referrers', to: 'results#top_referrers'
 
     namespace :api do
       namespace :v1 do

@@ -1,2 +1,5 @@
-<h1>Results#top_referrers</h1>
-<p>Find me in app/views/results/top_referrers.html.erb</p>
+<%= content_tag :div,
+  id: "top_referrers_data",
+  data: Site.new.top_sites_over_daterange_with_referrers(start_date: 4.days.ago.localtime).to_json do %>
+<% end %>
+<%= javascript_pack_tag 'top_referrers' %>
