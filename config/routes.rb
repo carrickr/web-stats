@@ -14,6 +14,7 @@ Rails.application.routes.draw do
       namespace :v1 do
         resource :sites do
           get 'top_urls', to: 'sites#top_urls'
+          get 'top_referrers', to: 'sites#top_referrers'
         end
       end
     end
