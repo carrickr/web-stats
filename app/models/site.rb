@@ -91,6 +91,32 @@ class Site < Sequel::Model
     self[:hash]
   end
 
+  def top_sites_over_daterange_with_referrers(start_date:, end_date: Date.today, site_limit: 10, referrer_limit: 5)
+    result_hash = {}
+    sites = top_sites_over_daterange(start_date: start_date, end_date: end_date, limit: site_limit)
+    sites.each_key do |date|
+      result_hash[date] = []
+      sites[date].each_key do |top_site|
+        new_hash = {'url' => top_site, 'visits' => sites[date][top_site]}
+        referrers_list = get_referrers(date: date, url: top_site, limit: referrer_limit)
+        new_hash['referrers'] = referrers_list unless referrers_list.empty?
+        result_hash[date] << new_hash
+        #byebug
+      end
+    end
+    result_hash
+  end
+
+  def get_referrers(date:, url:, limit: 5)
+    date = Date.parse(date) if date.class == String
+    referrers = []
+    Site.where(created_at: date.all_day, url: url).group_and_count(:referrer).order(Sequel.desc(:count)).limit(limit+1).all.each do |referrer|
+      unless referrer[:referrer].nil? || referrers.size == limit
+        referrers << {'url' => referrer[:referrer], 'visits' => referrer[:count]}
+      end
+    end
+    referrers
+  end
   private
 
   # used as an after_save hook to generater a MD5 Hexdigest using the
@@ -117,6 +143,8 @@ class Site < Sequel::Model
     current_results.merge!(new_sites)
     unflatten_result_hash(flattened_hash: flatten_result_hash(results: current_results), limit: limit)
   end
+
+
 
   # Takes a flattened hash (one with date and url combined) and creates
   # a nested hash

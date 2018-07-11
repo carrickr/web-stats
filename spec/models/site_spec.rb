@@ -54,7 +54,7 @@ RSpec.describe Site, type: :model do
     end
     let!(:site_visited_1_day_ago) do
       described_class.create(url: 'http://developer.apple.com',
-                             created_at: 1.days.ago)
+                             created_at: 1.days.ago.localtime)
     end
 
     it 'gets all sites visited on a specific day' do
@@ -88,7 +88,7 @@ RSpec.describe Site, type: :model do
     end
     let!(:site_visited_2_days_ago) do
       described_class.create(url: 'http://developer.apple.com',
-                             created_at: 2.days.ago)
+                             created_at: 2.days.ago.localtime)
     end
 
     describe '.formatted_visits' do
@@ -119,7 +119,7 @@ RSpec.describe Site, type: :model do
       end
 
       it 'gets a range of dates' do
-        expect(subject.visits_over_daterange(start_date: 3.days.ago, end_date: 1.days.ago).keys.size).to eq(3)
+        expect(subject.visits_over_daterange(start_date: 3.days.ago.localtime, end_date: 1.days.ago.localtime).keys.size).to eq(3)
       end
     end
   end
@@ -130,29 +130,66 @@ RSpec.describe Site, type: :model do
     # Visit another site once
     let!(:different_site) { described_class.create(url: 'http://developer.apple.com', created_at: Time.now) }
 
-    let(:date_key) { 0.days.ago.strftime('%Y-%m-%d') }
+    let(:date_key) { 0.days.ago.localtime.strftime('%Y-%m-%d') }
     describe '.top_sites' do
       it 'gets the sites visited' do
-        expect(subject.top_sites(date: 0.days.ago)).to include(date_key => { 'http://apple.com' => 2, 'http://developer.apple.com' => 1 })
+        expect(subject.top_sites(date: 0.days.ago.localtime)).to include(date_key => { 'http://apple.com' => 2, 'http://developer.apple.com' => 1 })
       end
 
       it 'returns only the desired number of sites' do
-        expect(subject.top_sites(date: 0.days.ago, limit: 1)).to include(date_key => { 'http://apple.com' => 2 })
+        expect(subject.top_sites(date: 0.days.ago.localtime, limit: 1)).to include(date_key => { 'http://apple.com' => 2 })
       end
     end
     describe '.top_sites_over_daterange' do
-      let!(:visited_yesterday) { described_class.create(url: 'http://opensource.org', created_at: 1.day.ago) }
-      let(:yesterday_date_key) { 1.days.ago.strftime('%Y-%m-%d') }
+      let!(:visited_yesterday) { described_class.create(url: 'http://opensource.org', created_at: 1.day.ago.localtime) }
+      let(:yesterday_date_key) { 1.days.ago.localtime.strftime('%Y-%m-%d') }
       it 'gets the sites visited' do
-        expect(subject.top_sites_over_daterange(start_date: 0.days.ago)).to include(date_key => { 'http://apple.com' => 2, 'http://developer.apple.com' => 1 })
+        expect(subject.top_sites_over_daterange(start_date: 0.days.ago.localtime)).to include(date_key => { 'http://apple.com' => 2, 'http://developer.apple.com' => 1 })
       end
 
       it 'gets the sites visited over multiple days' do
-        expect(subject.top_sites_over_daterange(start_date: 1.days.ago)).to include(yesterday_date_key => { 'http://opensource.org' => 1 }, date_key => { 'http://apple.com' => 2, 'http://developer.apple.com' => 1 })
+        expect(subject.top_sites_over_daterange(start_date: 1.days.ago.localtime)).to include(yesterday_date_key => { 'http://opensource.org' => 1 }, date_key => { 'http://apple.com' => 2, 'http://developer.apple.com' => 1 })
       end
 
       it 'applies limits to the number of results' do
-        expect(subject.top_sites_over_daterange(start_date: 1.days.ago, limit: 1)).to include(date_key => { 'http://apple.com' => 2 })
+        expect(subject.top_sites_over_daterange(start_date: 1.days.ago.localtime, limit: 1)).to include(date_key => { 'http://apple.com' => 2 })
+      end
+    end
+    describe '.top_sites_over_daterange_with_referrers' do
+      describe 'no referrers present in database' do
+        it 'does not add the referrer key to the results hash' do
+          expect(subject.top_sites_over_daterange_with_referrers(start_date: 0.days.ago.localtime)).to match({date_key=>[{"url"=>"http://apple.com", "visits"=>2}, {"url"=>"http://developer.apple.com", "visits"=>1}]})
+        end
+      end
+      describe 'referrers present in database' do
+        let!(:first_referrer) { described_class.create(url: 'http://apple.com',referrer: 'http://developer.apple.com', created_at: 0.days.ago.localtime.localtime) }
+        let!(:second_referrer) { described_class.create(url: 'http://apple.com',referrer: 'http://developer.apple.com', created_at: 0.days.ago.localtime.localtime) }
+        let!(:third_referrer) { described_class.create(url: 'http://apple.com', referrer: 'https://www.apple.com', created_at: 0.days.ago.localtime.localtime) }
+        it 'adds the reffers key to the results hash' do
+            expect(subject.top_sites_over_daterange_with_referrers(start_date: 0.days.ago.localtime)).to match(date_key=>[{"url"=>"http://apple.com", "visits"=>5, "referrers"=>[{"url"=>"http://developer.apple.com", "visits"=>2}, {"url"=>"https://www.apple.com", "visits"=>1}]}, {"url"=>"http://developer.apple.com", "visits"=>1}])
+        end
+      end
+
+    end
+    describe '.get_referrers' do
+      describe 'no referrers present in database' do
+        it 'returns an empty array when there are no referers' do
+          expect(subject.get_referrers(date: 1.days.ago.localtime.localtime, url: 'http://apple.com')).to be_empty
+        end
+      end
+
+      describe 'referrers present in database' do
+        let!(:first_referrer) { described_class.create(url: 'http://apple.com',referrer: 'http://developer.apple.com', created_at: 0.days.ago.localtime.localtime) }
+        let!(:second_referrer) { described_class.create(url: 'http://apple.com',referrer: 'http://developer.apple.com', created_at: 0.days.ago.localtime.localtime) }
+        let!(:third_referrer) { described_class.create(url: 'http://apple.com', referrer: 'https://www.apple.com', created_at: 0.days.ago.localtime.localtime) }
+
+        it 'gets referrers when there are referrers' do
+          expect(subject.get_referrers(date: 0.days.ago.localtime.localtime, url: 'http://apple.com')).to match ([{ 'url' => 'http://developer.apple.com', 'visits' => 2 }, { 'url' => 'https://www.apple.com', 'visits' => 1 }])
+        end
+
+        it 'respects limits when getting referrers' do
+          expect(subject.get_referrers(date: 0.days.ago.localtime.localtime, url: 'http://apple.com', limit: 1)).to match ([{ 'url' => 'http://developer.apple.com', 'visits' => 2 }])
+        end
       end
     end
   end
